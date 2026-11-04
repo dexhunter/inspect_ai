@@ -1,0 +1,72 @@
+[
+  {
+    "upstream_repo": "https://github.com/UKGovernmentBEIS/inspect_ai",
+    "head_sha": "d30b97302b30379c45dcea2964134cf73adf5d7f",
+    "file": "src/inspect_ai/_util/json.py",
+    "function": "exceeds_max_depth",
+    "bench_cmd": "uv run --no-sync python osspr-intake/harness/bench.py --target exceeds_max_depth",
+    "native_test_cmd": "uv run --no-sync pytest tests/util/test_json.py -k exceeds_max_depth",
+    "baseline_median_ms": 7.458,
+    "baseline_noise_pct": 2.24,
+    "tests_pass_on_baseline": true,
+    "tests_summary": "7 passed, 54 deselected in 2.07s",
+    "why_hot": "cProfile of condense_sample on one 40-turn agent sample (3 calls, 81.5ms) showed exceeds_max_depth as the largest self-time function, 13ms self and 28ms cumulative, about 34% of that condense.",
+    "overlap_check": "No overlap with dexhunter PRs #4714, #4628, or #4431 (all merged; none open). Upstream PR search for exceeds_max_depth hit merged #5095 (ransomr, 2026-09-01), which added this walk so deeply nested samples fail in condense instead of crashing the log writer. Issue search returned no hits."
+  },
+  {
+    "upstream_repo": "https://github.com/UKGovernmentBEIS/inspect_ai",
+    "head_sha": "d30b97302b30379c45dcea2964134cf73adf5d7f",
+    "file": "src/inspect_ai/log/_condense.py",
+    "function": "attachment_refs_from_object",
+    "bench_cmd": "uv run --no-sync python osspr-intake/harness/bench.py --target attachment_refs_from_object",
+    "native_test_cmd": "uv run --no-sync pytest tests/log/test_log_attachments.py -k attachment_refs_from_object",
+    "baseline_median_ms": 3.5174,
+    "baseline_noise_pct": 1.14,
+    "tests_pass_on_baseline": true,
+    "tests_summary": "15 passed, 60 deselected in 1.56s",
+    "why_hot": "In that same condense_sample profile attachment_refs_from_object was second at 12ms self and 22ms cumulative (about 27%), and during write_eval_log of the condensed log it took 33ms of 245ms self time.",
+    "overlap_check": "No overlap with dexhunter PRs #4714, #4628, or #4431. Upstream PR search for attachment_refs and issue search for attachment refs returned no hits."
+  },
+  {
+    "upstream_repo": "https://github.com/UKGovernmentBEIS/inspect_ai",
+    "head_sha": "d30b97302b30379c45dcea2964134cf73adf5d7f",
+    "file": "src/inspect_ai/model/_chat_message.py",
+    "function": "_wrap",
+    "bench_cmd": "uv run --no-sync python osspr-intake/harness/bench.py --target ChatMessageBase._wrap",
+    "native_test_cmd": "uv run --no-sync pytest tests/log/test_condense_linear.py::test_condense_sample_keeps_json_distinct_message_versions",
+    "baseline_median_ms": 15.1879,
+    "baseline_noise_pct": 0.99,
+    "tests_pass_on_baseline": true,
+    "tests_summary": "3 passed in 1.49s",
+    "why_hot": "cProfile of read_eval_log on a 4-sample condensed agent log (3 calls, 174ms) attributed 100ms cumulative (57%) to ChatMessageBase._wrap across 15228 calls, spent building a sha256 of json.dumps for the deserializer message cache.",
+    "overlap_check": "No overlap with dexhunter PRs #4714, #4628, or #4431 (#4628 changed tool_result_media_as_user_message in _model.py, not this validator). PR search for MESSAGE_CACHE returned nothing. A title search for message cache returned unrelated PRs (#5819 events_df, #5680 mypy wrap validators, #5883 in-place message edits) and no issue about this cache key."
+  },
+  {
+    "upstream_repo": "https://github.com/UKGovernmentBEIS/inspect_ai",
+    "head_sha": "d30b97302b30379c45dcea2964134cf73adf5d7f",
+    "file": "src/inspect_ai/dataset/_util.py",
+    "function": "record_to_sample",
+    "bench_cmd": "uv run --no-sync python osspr-intake/harness/bench.py --target record_to_sample",
+    "native_test_cmd": "uv run --no-sync pytest tests/dataset/test_dataset.py::test_dataset -k \"samples.json and not jsonl\"",
+    "baseline_median_ms": 36.8463,
+    "baseline_noise_pct": 2.18,
+    "tests_pass_on_baseline": true,
+    "tests_summary": "1 passed, 2 deselected in 1.48s",
+    "why_hot": "cProfile of json_dataset on 8000 JSONL rows (3 calls, 570ms) attributed 349ms cumulative (61%) and 98ms self time to record_to_sample, ahead of json.loads.",
+    "overlap_check": "No overlap with dexhunter PRs #4714, #4628, or #4431. Open #5911 edits read_messages in this same file (chat-message metadata for non-string inputs) and open #6209 edits json_dataset reader selection in dataset/_sources/json.py; neither changes the string-input record_to_sample path this bench measures. Other json_dataset PR/issue hits are behavior fixes (#5673, #4362, #5461, #5453, #6038, #5524, #5816, #5442, #5272), not this conversion loop."
+  },
+  {
+    "upstream_repo": "https://github.com/UKGovernmentBEIS/inspect_ai",
+    "head_sha": "d30b97302b30379c45dcea2964134cf73adf5d7f",
+    "file": "src/inspect_ai/scorer/_metrics/std.py",
+    "function": "_bootstrap_means",
+    "bench_cmd": "uv run --no-sync python osspr-intake/harness/bench.py --target _bootstrap_means",
+    "native_test_cmd": "uv run --no-sync pytest tests/scorer/test_metric.py::test_ci_bootstrap_brackets_mean tests/scorer/test_metric.py::test_ci_bootstrap_close_to_t tests/scorer/test_metric.py::test_ci_clustered_bootstrap_runs",
+    "baseline_median_ms": 20.6656,
+    "baseline_noise_pct": 2.7,
+    "tests_pass_on_baseline": true,
+    "tests_summary": "3 passed in 1.58s",
+    "why_hot": "With numpy already imported, one _bootstrap_means call on 4000 scores and the default 1000 resamples took 26ms, 16ms of it self time in the Python resample loop; the same loop inside bootstrap_stderr was 393ms of 485ms (81%) on 8000 scores.",
+    "overlap_check": "No overlap with dexhunter's function changes. #4714 (merged) rewrote _clustered_stderr in this same file and its diff does not mention bootstrap. Merged #4422 only changed bootstrap_stderr's empty-list guard. Open issue #4147 asks for a ci() metric; ci(method='bootstrap') already calls _bootstrap_means. No open PR mentions _bootstrap_means. Issue search for bootstrap_stderr also hit closed #4421, #4718, #5003, #5732 and open #5530, none of which are this helper."
+  }
+]
