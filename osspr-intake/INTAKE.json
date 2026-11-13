@@ -1,0 +1,47 @@
+[
+  {
+    "upstream_repo": "UKGovernmentBEIS/inspect_ai",
+    "head_sha": "4748612429a58b5627bc220ccf70ca7d8cda0b96",
+    "file": "src/inspect_ai/_util/text.py",
+    "function": "truncate_string_to_bytes",
+    "native_test_cmd": "uv run --frozen pytest tests/tools/test_max_tool_output.py -q --tb=short",
+    "bench_cmd": "uv run --frozen python osspr-intake/harness/truncate_string_to_bytes_peak.py",
+    "metric_kind": "peak_memory_bytes",
+    "baseline_value": 23967393,
+    "baseline_noise_pct": 0.0,
+    "metric_benchmark": "uv run --frozen python osspr-intake/harness/truncate_string_to_bytes_peak.py",
+    "labeled_data": null,
+    "tests_pass_on_baseline": true,
+    "workload": "One 8 MiB tool/log string with non-ASCII text, truncated to the default 16 KiB max_tool_output.",
+    "notes": "Any non-ASCII character misses the ASCII fast path, so the call UTF-8-encodes the whole string and then decodes head and tail slices just to keep 16 KiB. Traced peak on this call is about 23 MiB and was identical across 5 runs, so a bounded encode that retains only the head and tail can drop well over 1 MiB without changing TruncatedOutput. Overlap: none of 130 open upstream PRs touch this file; upstream/main commits since 2026-10-14 with a present parent do not either (shallow boundary 0c3b3e46e has no parent here and an empty diff-tree). dexhunter #4714/#4628/#4431 are other functions. Open issue #6375 is numeric comma stripping, not this truncator. Not deprecated or being moved."
+  },
+  {
+    "upstream_repo": "UKGovernmentBEIS/inspect_ai",
+    "head_sha": "4748612429a58b5627bc220ccf70ca7d8cda0b96",
+    "file": "src/inspect_ai/_util/images.py",
+    "function": "provider_image_data_uri",
+    "native_test_cmd": "uv run --frozen pytest tests/util/test_media_resolver.py::TestProviderImageDataUri -q --tb=short",
+    "bench_cmd": "uv run --frozen python osspr-intake/harness/provider_image_data_uri_peak.py",
+    "metric_kind": "peak_memory_bytes",
+    "baseline_value": 11535851,
+    "baseline_noise_pct": 0.0,
+    "metric_benchmark": "uv run --frozen python osspr-intake/harness/provider_image_data_uri_peak.py",
+    "labeled_data": null,
+    "tests_pass_on_baseline": true,
+    "workload": "One 3 MiB canonical PNG data URI whose MIME is already image/png, as an inline provider image.",
+    "notes": "A canonical data URI is fully base64-decoded and re-encoded even though TestProviderImageDataUri requires the result to equal the input. The traced peak is about 11.5 MiB of temporary buffers on a 3 MiB image and was identical across 5 runs; sniffing a short prefix and returning the original string when the MIME already matches removes those copies (well over 1 MiB) and keeps the same URI. Overlap: no open upstream PR touches images.py (PR 6446 was paged past 80 files; the rest does not include it). No upstream/main commit since 2026-10-14 with a present parent edits the file. dexhunter's merged PRs are stderr, tool-result media extraction, and log-viewer CI. No open issue marks this helper deprecated or mid-move."
+  },
+  {
+    "upstream_repo": "UKGovernmentBEIS/inspect_ai",
+    "head_sha": "4748612429a58b5627bc220ccf70ca7d8cda0b96",
+    "file": "src/inspect_ai/scorer/_metrics/std.py",
+    "function": "bootstrap_stderr",
+    "native_test_cmd": "uv run --frozen pytest tests/scorer/test_metric.py::test_metrics_return_zero_for_empty_scores tests/scorer/test_task_scorer.py -q --tb=short",
+    "bench_cmd": "uv run --frozen python osspr-intake/harness/bootstrap_stderr_runtime.py",
+    "baseline_median_ms": 195.20515,
+    "baseline_noise_pct": 4.286,
+    "tests_pass_on_baseline": true,
+    "workload": "One bootstrap_stderr pass over 8,000 numeric sample scores with the default 1,000 resamples.",
+    "notes": "The nested metric passes a Python list to np.random.choice on every resample, so each of the 1,000 draws rebuilds the array. Five timed calls after one warmup had median 195.2 ms and full spread 4.286% of that median. Converting to an ndarray once, which _bootstrap_means already does for ci(), measured about 34 ms on the same scores, roughly 160 ms saved, and the empty-score result the tests lock stays 0. Overlap: std.py is absent from open PRs and from upstream/main diffs since 2026-10-14. dexhunter #4714 optimized _clustered_stderr in this file in Aug 2026 and that function was skipped; bootstrap_stderr is separate. Open issue #4147 asks for a ci() metric that already exists and does not rewrite this function."
+  }
+]
